@@ -33,13 +33,13 @@ int main(){
       xbee_reply[1] = '\0';
    }
 
-   xbee.write("ATMY <Remote MY>\r\n", 12);
-   reply_messange(xbee_reply, "setting MY : <Remote MY>");
-   xbee.write("ATDL <Remote DL>\r\n", 12);
-   reply_messange(xbee_reply, "setting DL : <Remote DL>");
+   xbee.write("ATMY 0x252\r\n", 12);
+   reply_messange(xbee_reply, "setting MY : 0x252");
+   xbee.write("ATDL 0x152\r\n", 12);
+   reply_messange(xbee_reply, "setting DL : 0x152");
 
-   xbee.write("ATID <PAN ID>\r\n", 10);
-   reply_messange(xbee_reply, "setting PAN ID : <PAN ID>");
+   xbee.write("ATID 0x1\r\n", 10);
+   reply_messange(xbee_reply, "setting PAN ID : 0x1");
 
    xbee.write("ATWR\r\n", 6);
    reply_messange(xbee_reply, "write config");
@@ -65,13 +65,9 @@ int main(){
 
    // Setup a serial interrupt function of receiving data from xbee
    xbee.set_blocking(false);
-   xbee.sigio(mbed_event_queue()->event(xbee_rx_interrupt));
+   xbee.sigio(mbed_event_queue()->event(xbee_rx));
 }
 
-void xbee_rx_interrupt(void)
-{
-   queue.call(&xbee_rx);
-}
 
 void xbee_rx(void)
 {
