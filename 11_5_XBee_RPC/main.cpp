@@ -1,5 +1,6 @@
 #include "mbed.h"
-using namespace std;
+#include "mbed_rpc.h"
+
 
 static BufferedSerial pc(STDIO_UART_TX, STDIO_UART_RX);
 static BufferedSerial xbee(D1, D0);
@@ -7,11 +8,17 @@ static BufferedSerial xbee(D1, D0);
 EventQueue queue(32 * EVENTS_EVENT_SIZE);
 Thread t;
 
+RpcDigitalOut myled1(LED1,"myled1");
+RpcDigitalOut myled2(LED2,"myled2");
+RpcDigitalOut myled3(LED3,"myled3");
+
+void xbee_rx_interrupt(void);
 void xbee_rx(void);
 void reply_messange(char *xbee_reply, char *messange);
 void check_addr(char *xbee_reply, char *messenger);
 
 int main(){
+
    pc.set_baud(9600);
 
    char xbee_reply[4];
@@ -26,23 +33,16 @@ int main(){
       xbee_reply[1] = '\0';
    }
 
-
-   xbee.write("ATMY 0x252\r\n", 12);
+   xbee.write("ATMY <Remote MY>\r\n", 12);
    reply_messange(xbee_reply, "setting MY : <Remote MY>");
-
-   xbee.write("ATDL 0x152\r\n", 12);
+   xbee.write("ATDL <Remote DL>\r\n", 12);
    reply_messange(xbee_reply, "setting DL : <Remote DL>");
 
-   xbee.write("ATID 0x1\r\n", 10);
+   xbee.write("ATID <PAN ID>\r\n", 10);
    reply_messange(xbee_reply, "setting PAN ID : <PAN ID>");
 
    xbee.write("ATWR\r\n", 6);
    reply_messange(xbee_reply, "write config");
-
-   xbee_reply[0] = '\0';
-   xbee_reply[1] = '\0';
-   xbee_reply[2] = '\0';
-   xbee_reply[3] = '\0';
 
    xbee.write("ATMY\r\n", 6);
    check_addr(xbee_reply, "MY");
@@ -53,46 +53,46 @@ int main(){
    xbee.write("ATCN\r\n", 6);
    reply_messange(xbee_reply, "exit AT mode");
 
-   while(xbee.readable()){ //used to clear buffer
-      char *c = new char[1];
-      xbee.read(c, 1);
-      printf("clear \r\n");
+   while(xbee.readable()){
+      char *k = new char[1];
+      xbee.read(k,1);
+      printf("clear\r\n");
    }
 
-   //start send
-
+   // start
    printf("start\r\n");
    t.start(callback(&queue, &EventQueue::dispatch_forever));
 
+   // Setup a serial interrupt function of receiving data from xbee
    xbee.set_blocking(false);
-
-   xbee.sigio(mbed_event_queue()->event(xbee_rx));
-
+   xbee.sigio(mbed_event_queue()->event(xbee_rx_interrupt));
 }
 
+void xbee_rx_interrupt(void)
+{
+   queue.call(&xbee_rx);
+}
 
 void xbee_rx(void)
 {
-   static int i = 0;
-   static char buf[100] = {0};
+   char buf[100] = {0};
+   char outbuf[100] = {0};
    while(xbee.readable()){
-      char *c = new char[1];
-      xbee.read(c, 1);
-      if(*c!='\r' && *c!='\n'){
-         buf[i] = *c;
-         i++;
-         buf[i] = '\0';
-      }else if((*c == '\r' || *c == '\n') && i == 0){ // ignore redundant char in buffer
+      for (int i=0; ; i++) {
+         char *recv = new char[1];
+         xbee.read(recv, 1);
+         buf[i] = *recv;
+         if (*recv == '\r') {
+         break;
+         }
+      }
 
-      }
-      else
-      {
-         i = 0;
-         printf("Get: %s\r\n", buf);
-         xbee.write(buf, sizeof(buf));
-      }
+      RPC::call(buf, outbuf);
+
+      printf("%s\r\n", outbuf);
+      ThisThread::sleep_for(1s);
    }
-   ThisThread::sleep_for(100ms);
+
 }
 
 void reply_messange(char *xbee_reply, char *messange){
