@@ -13,7 +13,7 @@ RpcDigitalOut myled1(LED1,"myled1");
 RpcDigitalOut myled2(LED2,"myled2");
 RpcDigitalOut myled3(LED3,"myled3");
 void getAcc(Arguments *in, Reply *out);
-RPCFunction rpcacc(&getAcc, "Acc");
+RPCFunction rpcAcc(&getAcc, "getAcc");
 
 void xbee_rx_interrupt(void);
 void xbee_rx(void);
@@ -124,9 +124,11 @@ void check_addr(char *xbee_reply, char *messenger){
 }
 
 void getAcc(Arguments *in, Reply *out) {
+   printf("test2\n");
    int16_t pDataXYZ[3] = {0};
    char buffer[200];
    BSP_ACCELERO_AccGetXYZ(pDataXYZ);
    sprintf(buffer, "Accelerometer values: (%d, %d, %d)", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+   printf("test\n");
    out->putData(buffer);
 }
