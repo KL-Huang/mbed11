@@ -90,7 +90,7 @@ void xbee_rx(void)
          break;
          }
       }
-
+   //   printf("%s\r\n", buf);
       RPC::call(buf, outbuf);
 
       printf("%s\r\n", outbuf);

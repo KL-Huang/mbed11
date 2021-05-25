@@ -2,7 +2,7 @@ import serial
 import time
 
 # XBee setting
-serdev = '/dev/ttyUSB2'
+serdev = '/dev/ttyUSB1'
 s = serial.Serial(serdev, 9600)
 
 s.write("+++".encode())
